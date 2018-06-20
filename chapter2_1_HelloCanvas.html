@@ -44,9 +44,15 @@
 "use strict";
 
 function main() {
-  var canvas = document.getElementById('webgl-canvas');
+  var width = window.innerWidth;
+  var height = window.innerHeight;
 
-  var gl = canvas.getContext('webgl');
+  var canvas = document.getElementById('webgl-canvas');
+  canvas.width = width;
+  canvas.height = height;
+
+  //var gl = canvas.getContext('webgl');
+  var gl =getWebGLContext(canvas);//此处为示例所提供的封装库函数，非原生。
 
   gl.clearColor(0.0, 0.0, 0.0, 1.0);//设置颜色缓冲区覆写（清除）颜色值RGBA
 

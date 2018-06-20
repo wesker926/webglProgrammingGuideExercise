@@ -2,8 +2,8 @@
 
 #### 好记性不如烂笔头，敲一遍比什么都强。
 
-### [chapter2_1_HelloCanvas]()
+### [chapter2_1_HelloCanvas](http://www.wesker926.com/webglProgrammingGuideExercise/chapter2_1_HelloCanvas.html)
 设置颜色缓冲区清除颜色，并清除画布。
 
-### [chapter2_2_HelloPoint1]()
+### [chapter2_2_HelloPoint1](http://www.wesker926.com/webglProgrammingGuideExercise/chapter2_2_HelloPoint1.html)
 绘制一个点，像素大小10.0，颜色红。

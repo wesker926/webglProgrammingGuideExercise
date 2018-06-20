@@ -44,9 +44,15 @@
 "use strict";
 
 function main() {
-  var canvas = document.getElementById('webgl-canvas');
+  var width = window.innerWidth;
+  var height = window.innerHeight;
 
-  var gl = canvas.getContext('webgl');
+  var canvas = document.getElementById('webgl-canvas');
+  canvas.width = width;
+  canvas.height = height;
+
+  //var gl = canvas.getContext('webgl');
+  var gl =getWebGLContext(canvas);//非原生
 
   var shader = {
     vertexShader: [
