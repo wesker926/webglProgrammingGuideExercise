@@ -1,0 +1,115 @@
+﻿<!doctype html>
+<!-- saved from url=(0016)http://localhost -->
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="author" content="wesker(http://www.wesker926.com/)">
+    <title>chapter2_4_ClickedPoints</title>
+
+    <style>
+        body {
+            background: #ffffff;
+            overflow: hidden;
+        }
+        #webgl {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            left: 0;
+            top: 0;
+            overflow: hidden;
+            background: #ffffff;
+        }
+        #webgl-canvas {
+            position: absolute;
+            width: 100%; 
+            height: 100%;
+            left: 0;
+            top: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="webgl">
+        <canvas id="webgl-canvas"></canvas>
+    </div>
+</body>
+</html>
+
+<script type="text/javascript" src="lib/webgl-utils.js"></script>
+<script type="text/javascript" src="lib/webgl-debug.js"></script>
+<script type="text/javascript" src="lib/cuon-utils.js"></script>
+
+<script type="text/javascript">
+"use strict";
+
+function main() {
+  var width = window.innerWidth;
+  var height = window.innerHeight;
+
+  var canvas = document.getElementById('webgl-canvas');
+  canvas.width = width;
+  canvas.height = height;
+
+  //var gl = canvas.getContext('webgl');
+  var gl =getWebGLContext(canvas);//非原生
+
+  var shader = {
+    vertexShader: [
+      'attribute vec4 a_Position;',
+      'attribute float a_PointSize;',
+
+      'void main() {',
+      '  gl_Position = a_Position;',
+      '  gl_PointSize = a_PointSize;',
+      '}'
+    ].join('\n'),
+    fragmentShader: [
+      'void main() {',
+      'gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);',
+      '}'
+    ].join('\n')
+  };
+
+  initShaders(gl, shader.vertexShader, shader.fragmentShader);//此函数为示例所提供的封装库函数，非原生。
+
+  gl.clearColor(0.0, 0.0, 0.0, 1.0);
+
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  var a_Position = gl.getAttribLocation(gl.program, 'a_Position');//得到对应变量的存储位置
+  var a_PointSize = gl.getAttribLocation(gl.program, 'a_PointSize');
+
+  canvas.onmousedown = (event) => {
+    handleMouseDown(event, gl, canvas, a_Position, a_PointSize);
+  };
+}
+
+var g_Points = [];//这里用了全局变量
+
+function handleMouseDown(event, gl, canvas, a_Position, a_PointSize) {
+  //处理鼠标按下事件
+  var tempX = (event.clientX / canvas.width) * 2 - 1;
+  //鼠标坐标系原点在左上角，y轴记得转换
+  var tempY = 1 - (event.clientY / canvas.height) * 2;
+
+  var mousePos = {
+    x: tempX,
+    y: tempY
+  };
+
+  g_Points.push(mousePos);
+
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  for(var i = 0;i < g_Points.length;i++) {
+    gl.vertexAttrib4f(a_Position, g_Points[i].x, g_Points[i].y, 0.0, 1.0);//使用该函数组为标签赋值（以v结尾的函数是向量形式）
+    gl.vertexAttrib1f(a_PointSize, 10.0);
+
+    gl.drawArrays(gl.POINTS, 0, 1);//参数{mode:绘制模式, first:开始的点（首位为0）, count:绘制的点数量}
+  }
+}
+
+window.onload = main();
+
+</script>
