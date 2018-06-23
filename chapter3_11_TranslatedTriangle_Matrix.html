@@ -1,0 +1,132 @@
+﻿<!doctype html>
+<!-- saved from url=(0016)http://localhost -->
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="author" content="wesker(http://www.wesker926.com/)">
+    <title>chapter3_11_TranslatedTriangle_Matrix</title>
+
+    <style>
+        body {
+            background: #444444;
+            overflow: hidden;
+        }
+        #webgl {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            left: 0;
+            top: 0;
+            overflow: hidden;
+            background: #444444;
+        }
+        #webgl-canvas {
+            position: absolute;
+            margin:auto;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="webgl">
+        <canvas id="webgl-canvas"></canvas>
+    </div>
+</body>
+</html>
+
+<script type="text/javascript" src="lib/webgl-utils.js"></script>
+<script type="text/javascript" src="lib/webgl-debug.js"></script>
+<script type="text/javascript" src="lib/cuon-utils.js"></script>
+
+<script type="text/javascript">
+"use strict";
+
+function main() {
+  var width = window.innerWidth;
+  var height = window.innerHeight;
+
+  var canvas = document.getElementById('webgl-canvas');
+  canvas.width = height;
+  canvas.height = height;
+
+  //var gl = canvas.getContext('webgl');
+  var gl =getWebGLContext(canvas);//非原生
+
+  var shader = {
+    vertexShader: [
+      'attribute vec4 a_Position;',
+
+      'uniform mat4 u_Matrix;',
+
+      'void main() {',
+      '  gl_Position = u_Matrix * a_Position;',
+      '}'
+    ].join('\n'),
+    fragmentShader: [
+      'precision mediump float;',//这句是指定变量范围和精度，中等精度
+      'uniform vec4 u_FragColor;',
+
+      'void main() {',
+      'gl_FragColor = u_FragColor;',
+      '}'
+    ].join('\n')
+  };
+
+  initShaders(gl, shader.vertexShader, shader.fragmentShader);//此函数为示例所提供的封装库函数，非原生。
+
+  gl.clearColor(0.0, 0.0, 0.0, 1.0);
+
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  var n = initVertexBuffers(gl);
+
+  var Tx = 0.5;
+  var Ty = 0.5;
+  var Tz = 0.0;
+  var matrix = new Float32Array([
+      1.0, 0.0, 0.0, 0.0,
+      0.0, 1.0, 0.0, 0.0,
+      0.0, 0.0, 1.0, 0.0,
+      Tx, Ty, Tz, 1.0
+    ]);
+
+  var u_Matrix = gl.getUniformLocation(gl.program, 'u_Matrix');
+
+  gl.uniformMatrix4fv(u_Matrix, false, matrix);
+
+  var u_FragColor = gl.getUniformLocation(gl.program, 'u_FragColor');
+
+  gl.uniform4f(u_FragColor, 1.0, 0.0, 0.0, 1.0);
+
+  gl.drawArrays(gl.TRIANGLES, 0, n);
+}
+
+function initVertexBuffers(gl) {
+  //创建浮点数组
+  //注意这里的顶点顺序
+  var vertices = new Float32Array(
+    [
+      0.0, 0.5,
+      -0.5, -0.5,
+      0.5, -0.5
+    ]
+    );
+  var n = vertices.length / 2;//含顶点数
+
+  var vertexBuffer = gl.createBuffer();//创建缓冲区对象
+  gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);//绑定缓冲区对象
+  gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);//向缓冲区写入数组
+
+  var a_Position = gl.getAttribLocation(gl.program, 'a_Position');
+  gl.vertexAttribPointer(a_Position, 2, gl.FLOAT, false, 0, 0);//将缓冲区分配给标签
+  gl.enableVertexAttribArray(a_Position);//使标签可用
+
+  return n;
+}
+
+window.onload = main();
+
+</script>
