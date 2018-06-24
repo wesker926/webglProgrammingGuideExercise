@@ -83,7 +83,7 @@
 
 本示例中，作者使用了requestAnimationFrame来更新动画，使用了elapsedTime/deltaTime等类似的结构来计算更新值。
 
-由于当页面离屏时，浏览器渲染停止，但计时未停止（Date.now()），所以会导致delta的累积，所以我在这里使用了一个监听函数消除累积。
+由于当页面离屏时，浏览器渲染停止，但计时未停止（Date.now()），所以会导致delta的累积，我在这里使用了一个监听函数消除累积（表现为当切出页面再回来，图形保持在离开时的状态，即离开的这段deltaTime清零）。
 
 ### [chapter04_05_RotatingTranslatedTriangle](http://www.wesker926.com/webglProgrammingGuideExercise/chapter04_05_RotatingTranslatedTriangle.html)
 简单动画，边旋转边平移的物体。
