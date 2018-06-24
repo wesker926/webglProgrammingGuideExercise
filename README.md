@@ -79,7 +79,7 @@
 ### [chapter04_04_RotatingTriangle](http://www.wesker926.com/webglProgrammingGuideExercise/chapter04_04_RotatingTriangle.html)
 简单动画，旋转的三角形。
 
-由于已有一定的web动画基础，由此例开始，将使用自己熟悉的代码风格和结构。
+由于已有一定的web动画基础，由此例开始，将使用自己熟悉的代码风格和结构。并为以后所有动画类示例追加stats.js状态监控。
 
 本示例中，作者使用了requestAnimationFrame来更新动画，使用了elapsedTime/deltaTime等类似的结构来计算更新值。
 
