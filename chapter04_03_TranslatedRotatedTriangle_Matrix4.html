@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="author" content="wesker(http://www.wesker926.com/)">
-    <title>chapter03_05_HelloTriangle_LINE_LOOP</title>
+    <title>chapter04_03_TranslatedRotatedTriangle_Matrix4</title>
 
     <style>
         body {
@@ -40,9 +40,15 @@
 <script type="text/javascript" src="lib/webgl-utils.js"></script>
 <script type="text/javascript" src="lib/webgl-debug.js"></script>
 <script type="text/javascript" src="lib/cuon-utils.js"></script>
+<script type="text/javascript" src="lib/cuon-matrix.js"></script>
 
 <script type="text/javascript">
 "use strict";
+
+const PI = Math.PI;
+const PI2 = PI * 2;
+const PID2 = PI / 2;
+const ONE_ANGLE = PI / 180;
 
 function main() {
   var width = window.innerWidth;
@@ -59,8 +65,10 @@ function main() {
     vertexShader: [
       'attribute vec4 a_Position;',
 
+      'uniform mat4 u_xformMatrix;',
+
       'void main() {',
-      '  gl_Position = a_Position;',
+      '  gl_Position = u_xformMatrix * a_Position;',//注意这里是矩阵乘法，顺序不能颠倒
       '}'
     ].join('\n'),
     fragmentShader: [
@@ -77,24 +85,41 @@ function main() {
 
   gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
-  gl.clear(gl.COLOR_BUFFER_BIT);
-
   var n = initVertexBuffers(gl);
+
+  var angle = 60;
+  var Tv = {
+    x: 0.5,
+    y: 0.0,
+    z: 0.0
+  };
+
+  var xformMatrix = new Matrix4();
+
+  xformMatrix.setTranslate(Tv.x, Tv.y, Tv.z);//注意，顺序很重要，矩阵乘法不满足交换律
+  xformMatrix.rotate(angle, 0, 0, 1);
+
+  var u_xformMatrix = gl.getUniformLocation(gl.program, 'u_xformMatrix');
+
+  gl.uniformMatrix4fv(u_xformMatrix, false, xformMatrix.elements);//false是指是否开启转置，webgl没有实现这一功能，必须为false
 
   var u_FragColor = gl.getUniformLocation(gl.program, 'u_FragColor');
 
   gl.uniform4f(u_FragColor, 1.0, 0.0, 0.0, 1.0);
 
-  gl.drawArrays(gl.LINE_LOOP, 0, n);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  gl.drawArrays(gl.TRIANGLES, 0, n);
 }
 
 function initVertexBuffers(gl) {
   //创建浮点数组
+  //注意这里的顶点顺序
   var vertices = new Float32Array(
     [
-      0.0, 0.5,
-      -0.5, -0.5,
-      0.5, -0.5
+      0.0, 0.2,
+      -0.2, -0.2,
+      0.2, -0.2
     ]
     );
   var n = vertices.length / 2;//含顶点数

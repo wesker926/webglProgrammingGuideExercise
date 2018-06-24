@@ -1,0 +1,239 @@
+﻿<!doctype html>
+<!-- saved from url=(0016)http://localhost -->
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="author" content="wesker(http://www.wesker926.com/)">
+    <title>chapter04_06_RotatingTranslatedTriangle_withButtons</title>
+
+    <style>
+        body {
+            background: #444444;
+            overflow: hidden;
+        }
+        #webgl {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            left: 0;
+            top: 0;
+            overflow: hidden;
+            background: #444444;
+        }
+        #webgl-canvas {
+            position: absolute;
+            margin:auto;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="webgl">
+        <canvas id="webgl-canvas"></canvas>
+        <button type="button" id="upSpeed" style="width: 100px;height: 50px;position: absolute;right: 100px;top: 500px;">upSpeed</button>
+        <button type="button" id="downSpeed" style="width: 100px;height: 50px;position: absolute;right: 100px;top: 600px">downSpeed</button>
+    </div>
+</body>
+</html>
+
+<script type="text/javascript" src="lib/webgl-utils.js"></script>
+<script type="text/javascript" src="lib/webgl-debug.js"></script>
+<script type="text/javascript" src="lib/cuon-utils.js"></script>
+<script type="text/javascript" src="lib/cuon-matrix.js"></script>
+
+<script type="text/javascript">
+"use strict";
+
+class Animate {
+  constructor() {
+    this.width = window.innerWidth;
+    this.height = window.innerHeight;
+
+    this.changeToVisible = false;
+    document.addEventListener('visibilitychange', this.visibilityChange.bind(this), false);
+
+    this.button1 = document.getElementById('upSpeed');
+    this.button2 = document.getElementById('downSpeed');
+    this.button1.addEventListener('click', this.upSpeed.bind(this), false);
+    this.button2.addEventListener('click', this.downSpeed.bind(this), false);
+
+    this.canvas = document.getElementById('webgl-canvas');
+    this.canvas.width = this.height;
+    this.canvas.height = this.height;
+
+    this.animationFrameId = 0;
+
+    this.startTime = 0;
+    this.elapsedTime = 0;
+    this.deltaTime = 0;
+
+    this.gl = this.canvas.getContext('webgl');
+
+    this.shader = {
+      vertexShader: [
+        'attribute vec4 a_Position;',
+
+        'uniform mat4 u_matrix;',
+
+        'void main() {',
+        '  gl_Position = u_matrix * a_Position;',//注意这里是矩阵乘法，顺序不能颠倒
+        '}'
+      ].join('\n'),
+      fragmentShader: [
+        'precision mediump float;',
+        'uniform vec4 u_FragColor;',
+
+        'void main() {',
+        'gl_FragColor = u_FragColor;',
+        '}'
+      ].join('\n')
+    };
+
+    this.init();
+  }
+
+  init() {
+    initShaders(this.gl, this.shader.vertexShader, this.shader.fragmentShader);
+    this.initVertexBuffers();
+
+    this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
+
+    this.u_matrix = this.gl.getUniformLocation(this.gl.program, 'u_matrix');
+    this.u_FragColor = this.gl.getUniformLocation(this.gl.program, 'u_FragColor');
+
+    this.angleSpeed = - 45;
+    this.angle = 360;
+    this.rotateAxis = {
+      x: 0,
+      y: 0,
+      z: 1
+    };
+    this.translateSpeed = 0.2;
+    this.Tv = {
+      x: 0.0,
+      y: 0.0,
+      z: 0.0
+    };
+    this.matrix = new Matrix4();
+    this.matrix.setIdentity();
+    this.fragColor = {
+      R: 1.0,
+      G: 0.0,
+      B: 0.0,
+      A: 1.0
+    };
+
+    this.gl.uniform4f(this.u_FragColor, this.fragColor.R, this.fragColor.G, this.fragColor.B, this.fragColor.A);
+
+    this.start();
+  }
+
+  start() {
+    this.startTime = Date.now();
+    this.animationFrameId = requestAnimationFrame(this.loop.bind(this));
+  }
+
+  loop() {
+    this.animationFrameId = requestAnimationFrame(this.loop.bind(this));
+    this.update();
+    this.draw();
+  }
+
+  update() {
+    var tempTime = Date.now() - this.startTime;
+    this.deltaTime = tempTime - this.elapsedTime;
+    this.elapsedTime = tempTime;
+    if(this.changeToVisible) {
+      this.deltaTime = 0;
+      this.changeToVisible = false;
+    }
+
+    this.gl.uniformMatrix4fv(this.u_matrix, false, this.matrix.elements);
+
+    this.Tv.x += this.translateSpeed * this.deltaTime / 1000;
+    this.matrix.setTranslate(this.Tv.x, this.Tv.y, this.Tv.z);
+
+    this.angle = (this.angle + this.angleSpeed * this.deltaTime / 1000) % 360;
+    this.matrix.rotate(this.angle, this.rotateAxis.x, this.rotateAxis.y, this.rotateAxis.z);
+
+    if(this.Tv.x >= 0.4) {
+      this.translateSpeed = - Math.abs(this.translateSpeed);
+      this.angleSpeed = Math.abs(this.angleSpeed);
+    }
+    else if(this.Tv.x <= -0.4) {
+      this.translateSpeed = Math.abs(this.translateSpeed);
+      this.angleSpeed = - Math.abs(this.angleSpeed);
+    }
+  }
+
+  draw() {
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+    this.gl.drawArrays(this.gl.TRIANGLES, 0, this.n);
+  }
+
+  initVertexBuffers() {
+    this.vertices = new Float32Array(
+      [
+        -0.1, 0.5,
+        0.0, -0.0,
+        0.1, 0.5,
+        -0.5, 0.1,
+        0.0, 0.0,
+        -0.5, -0.1,
+        0.0, 0.0,
+        -0.1, -0.5,
+        0.1, -0.5,
+        0.5, 0.1,
+        0.0, 0.0,
+        0.5, -0.1
+      ]
+      );
+    this.m = 2;//分量数
+    this.n = this.vertices.length / this.m;//顶点数
+
+    this.vertexBuffer = this.gl.createBuffer();//创建缓冲区对象
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);//绑定缓冲区对象
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, this.vertices, this.gl.STATIC_DRAW);//向缓冲区写入数组
+
+    this.a_Position = this.gl.getAttribLocation(this.gl.program, 'a_Position');
+    this.gl.vertexAttribPointer(this.a_Position, 2, this.gl.FLOAT, false, 0, 0);//将缓冲区分配给标签
+    this.gl.enableVertexAttribArray(this.a_Position);//使标签可用
+  }
+
+  upSpeed() {
+    var last = this.translateSpeed;
+    var sign = this.translateSpeed >= 0 ? 1 : -1;
+    this.translateSpeed = Math.abs(this.translateSpeed);
+    if(this.translateSpeed < 1.0) {
+      this.translateSpeed = Math.round((this.translateSpeed + 0.05) * 100) / 100;
+    }
+    this.translateSpeed *= sign;
+    console.log('upSpeed: ' + last + '-> ' + this.translateSpeed);
+  }
+
+  downSpeed() {
+    var last = this.translateSpeed;
+    var sign = this.translateSpeed >= 0 ? 1 : -1;
+    this.translateSpeed = Math.abs(this.translateSpeed);
+    if(this.translateSpeed > 0.0) {
+      this.translateSpeed = Math.round((this.translateSpeed - 0.05) * 100) / 100;
+    }
+    this.translateSpeed *= sign;
+    console.log('downSpeed: ' + last + '-> ' + this.translateSpeed);
+  }
+
+  visibilityChange() {
+    //当标签页可见状态改变时，如果转为的是可见，则置标志为true，用以解决离屏时计时不停止导致deltaTime累计的问题
+    this.changeToVisible = !document.hidden;
+    console.log('visibilityChange: hidden -> ' + document.hidden);
+  }
+}
+
+window.onload = function() {
+  var animate = new Animate();
+}
+
+</script>
