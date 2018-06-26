@@ -1,0 +1,210 @@
+﻿<!doctype html>
+<!-- saved from url=(0016)http://localhost -->
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="author" content="wesker(http://www.wesker926.com/)">
+    <title>chapter05_02_MultiAttributeSize_Interleaved</title>
+
+    <style>
+        body {
+            background: #444444;
+            overflow: hidden;
+        }
+        #webgl {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            left: 0;
+            top: 0;
+            overflow: hidden;
+            background: #444444;
+        }
+        #webgl-canvas {
+            position: absolute;
+            margin:auto;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="webgl">
+        <canvas id="webgl-canvas"></canvas>
+    </div>
+</body>
+</html>
+
+<script type="text/javascript" src="lib/webgl-utils.js"></script>
+<script type="text/javascript" src="lib/webgl-debug.js"></script>
+<script type="text/javascript" src="lib/cuon-utils.js"></script>
+<script type="text/javascript" src="lib/cuon-matrix.js"></script>
+<script type="text/javascript" src="lib/stats.min.js"></script>
+
+<script type="text/javascript">
+"use strict";
+
+class Animate {
+  constructor() {
+    this.width = window.innerWidth;
+    this.height = window.innerHeight;
+
+    this.changeToVisible = false;
+    document.addEventListener('visibilitychange', this.visibilityChange.bind(this), false);
+
+    this.canvas = document.getElementById('webgl-canvas');
+    this.canvas.width = this.height;
+    this.canvas.height = this.height;
+
+    //添加FPS监控
+    this.createStats();
+    
+    this.animationFrameId = 0;
+
+    this.startTime = 0;
+    this.elapsedTime = 0;
+    this.deltaTime = 0;
+
+    this.gl = this.canvas.getContext('webgl');
+
+    this.shader = {
+      vertexShader: [
+        'attribute vec4 a_Position;',
+        'attribute float a_PointSize;',
+
+        'uniform mat4 u_matrix;',
+
+        'void main() {',
+        '  gl_Position = u_matrix * a_Position;',//注意这里是矩阵乘法，顺序不能颠倒
+        '  gl_PointSize = a_PointSize;',
+        '}'
+      ].join('\n'),
+      fragmentShader: [
+        'precision mediump float;',
+        'uniform vec4 u_FragColor;',
+
+        'void main() {',
+        '  gl_FragColor = u_FragColor;',
+        '}'
+      ].join('\n')
+    };
+
+    this.init();
+  }
+
+  init() {
+    initShaders(this.gl, this.shader.vertexShader, this.shader.fragmentShader);
+    this.initVertexInfoBuffers();
+
+    this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
+
+    this.u_matrix = this.gl.getUniformLocation(this.gl.program, 'u_matrix');
+    this.u_FragColor = this.gl.getUniformLocation(this.gl.program, 'u_FragColor');
+
+    this.angleSpeed = - 45;
+    this.angle = 360;
+    this.rotateAxis = {
+      x: 0,
+      y: 0,
+      z: 1
+    };
+    this.matrix = new Matrix4();
+    this.matrix.setIdentity();
+    this.fragColor = {
+      R: 1.0,
+      G: 0.0,
+      B: 0.0,
+      A: 1.0
+    };
+
+    this.gl.uniform4f(this.u_FragColor, this.fragColor.R, this.fragColor.G, this.fragColor.B, this.fragColor.A);
+
+    this.start();
+  }
+
+  start() {
+    this.startTime = Date.now();
+    this.animationFrameId = requestAnimationFrame(this.loop.bind(this));
+  }
+
+  loop() {
+    this.animationFrameId = requestAnimationFrame(this.loop.bind(this));
+    this.stats.update();
+    
+    this.update();
+    this.draw();
+  }
+
+  update() {
+    var tempTime = Date.now() - this.startTime;
+    this.deltaTime = tempTime - this.elapsedTime;
+    this.elapsedTime = tempTime;
+    if(this.changeToVisible) {
+      this.deltaTime = 0;
+      this.changeToVisible = false;
+    }
+
+    this.gl.uniformMatrix4fv(this.u_matrix, false, this.matrix.elements);
+
+    this.angle = (this.angle + this.angleSpeed * this.deltaTime / 1000) % 360;
+    this.matrix.setRotate(this.angle, this.rotateAxis.x, this.rotateAxis.y, this.rotateAxis.z);
+  }
+
+  draw() {
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+    this.gl.drawArrays(this.gl.POINTS, 0, this.n);
+  }
+
+  createStats() {
+    //FPS监控
+    this.stats = new Stats();
+    this.stats.setMode(0);
+    this.stats.domElement.style.position = 'absolute';
+    this.stats.domElement.style.left = '0';
+    this.stats.domElement.style.top = '0';
+    document.body.appendChild(this.stats.domElement);
+  }
+
+  initVertexInfoBuffers() {
+    this.verticesInfo = new Float32Array(
+      //坐标-2分量，点尺寸-1分量
+      [
+        -0.5, 0.5, 5.0,
+        -0.5, -0.5, 10.0,
+        0.5, 0.5, 15.0,
+        0.5, -0.5, 20.0
+      ]
+      );
+    this.FSIZE = this.verticesInfo.BYTES_PER_ELEMENT;//每元素占字节数
+    this.pointCt = 3;//点总分量数
+    this.pointPosCt = 2;//点坐标分量数
+    this.pointSizeCt = 1;//点尺寸分量数
+    this.n = this.verticesInfo.length / this.pointCt;//顶点数
+
+    this.vertexBuffer = this.gl.createBuffer();//创建缓冲区对象
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);//绑定缓冲区对象
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, this.verticesInfo, this.gl.STATIC_DRAW);//向缓冲区写入数组
+
+    this.a_Position = this.gl.getAttribLocation(this.gl.program, 'a_Position');
+    this.gl.vertexAttribPointer(this.a_Position, this.pointPosCt, this.gl.FLOAT, false, this.FSIZE * 3, 0);//将缓冲区分配给标签
+    this.gl.enableVertexAttribArray(this.a_Position);//使标签可用
+
+    this.a_PointSize = this.gl.getAttribLocation(this.gl.program, 'a_PointSize');
+    this.gl.vertexAttribPointer(this.a_PointSize, this.pointSizeCt, this.gl.FLOAT, false, this.FSIZE * 3, this.FSIZE * 2);
+    this.gl.enableVertexAttribArray(this.a_PointSize);
+  }
+
+  visibilityChange() {
+    //当标签页可见状态改变时，如果转为的是可见，则置标志为true，用以解决离屏时计时不停止导致deltaTime累计的问题
+    this.changeToVisible = !document.hidden;
+    console.log('visibilityChange: hidden -> ' + document.hidden);
+  }
+}
+
+window.onload = function() {
+  var animate = new Animate();
+}
+
+</script>

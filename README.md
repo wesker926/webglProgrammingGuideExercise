@@ -90,3 +90,29 @@
 
 ### [chapter04_06_RotatingTranslatedTriangle_withButtons](http://www.wesker926.com/webglProgrammingGuideExercise/chapter04_06_RotatingTranslatedTriangle_withButtons.html)
 简单动画，边旋转边平移的物体，附加变速按钮以修改平移速度。
+
+### 练习于 2018.06.25 - 2018.06.26
+
+### [chapter05_01_MultiAttributeSize](http://www.wesker926.com/webglProgrammingGuideExercise/chapter05_01_MultiAttributeSize.html)
+通过多个缓冲区的方式传入除坐标外顶点的其他信息（顶点尺寸）。
+
+### [chapter05_02_MultiAttributeSize_Interleaved](http://www.wesker926.com/webglProgrammingGuideExercise/chapter05_02_MultiAttributeSize_Interleaved.html)
+通过单个缓冲区交错组织的方式传入除坐标外顶点的其他信息（顶点尺寸）。
+
+### [chapter05_03_MultiAttributeColor](http://www.wesker926.com/webglProgrammingGuideExercise/chapter05_03_MultiAttributeColor.html)
+通过单个缓冲区交错组织的方式传入除坐标外顶点的其他信息（顶点尺寸，颜色），然后通过varying变量将颜色信息从顶点着色器传递到片元着色器。
+
+### [chapter05_04_ColoredTriangle](http://www.wesker926.com/webglProgrammingGuideExercise/chapter05_04_ColoredTriangle.html)
+将绘制方式由点变为三角面，理解通过光栅化将图元（矢量信息）转换为片元（像素）的过程，类似于ps中的矢量图形栅格化。
+
+### [chapter05_05_TexturedQuad](http://www.wesker926.com/webglProgrammingGuideExercise/chapter05_05_TexturedQuad.html)
+为二维平面加载纹理（纹理图片），特别注意的是图片的尺寸如果不是2的次幂，需要将水平和垂直填充方式设置为gl.CLAMP_TO_EDGE（使用边缘值）。
+
+### [chapter05_06_TexturedQuad_Repeat](http://www.wesker926.com/webglProgrammingGuideExercise/chapter05_06_TexturedQuad_Repeat.html)
+理解重复填充方式。
+
+### [chapter05_07_TexturedQuad_Repeat_Mirror](http://www.wesker926.com/webglProgrammingGuideExercise/chapter05_07_TexturedQuad_Repeat_Mirror.html)
+理解镜像重复填充方式。
+
+### [chapter05_08_MultiTexture](http://www.wesker926.com/webglProgrammingGuideExercise/chapter05_08_MultiTexture.html)
+双纹理叠加（矢量相乘方法）。

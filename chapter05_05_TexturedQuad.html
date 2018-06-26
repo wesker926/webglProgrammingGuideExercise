@@ -1,0 +1,253 @@
+﻿<!doctype html>
+<!-- saved from url=(0016)http://localhost -->
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="author" content="wesker(http://www.wesker926.com/)">
+    <title>chapter05_05_TexturedQuad</title>
+
+    <style>
+        body {
+            background: #444444;
+            overflow: hidden;
+        }
+        #webgl {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            left: 0;
+            top: 0;
+            overflow: hidden;
+            background: #444444;
+        }
+        #webgl-canvas {
+            position: absolute;
+            margin:auto;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="webgl">
+        <canvas id="webgl-canvas"></canvas>
+    </div>
+</body>
+</html>
+
+<script type="text/javascript" src="lib/webgl-utils.js"></script>
+<script type="text/javascript" src="lib/webgl-debug.js"></script>
+<script type="text/javascript" src="lib/cuon-utils.js"></script>
+<script type="text/javascript" src="lib/cuon-matrix.js"></script>
+<script type="text/javascript" src="lib/stats.min.js"></script>
+
+<script type="text/javascript">
+"use strict";
+
+class Animate {
+  constructor() {
+    this.width = window.innerWidth;
+    this.height = window.innerHeight;
+
+    this.changeToVisible = false;
+    document.addEventListener('visibilitychange', this.visibilityChange.bind(this), false);
+
+    this.canvas = document.getElementById('webgl-canvas');
+    this.canvas.width = this.height;
+    this.canvas.height = this.height;
+
+    //添加FPS监控
+    this.createStats();
+    
+    this.animationFrameId = 0;
+
+    this.startTime = 0;
+    this.elapsedTime = 0;
+    this.deltaTime = 0;
+
+    this.gl = this.canvas.getContext('webgl');
+
+    this.shader = {
+      vertexShader: [
+        'attribute vec4 a_Position;',
+        'attribute vec2 a_TexCoord;',
+
+        'uniform mat4 u_matrix;',
+
+        'varying vec2 v_TexCoord;',
+
+        'void main() {',
+        '  gl_Position = u_matrix * a_Position;',
+        '  v_TexCoord = a_TexCoord;',
+        '}'
+      ].join('\n'),
+      fragmentShader: [
+        'precision mediump float;',
+
+        'uniform sampler2D u_Sampler;',
+
+        'varying vec2 v_TexCoord;',
+
+        'void main() {',
+        '  gl_FragColor = texture2D(u_Sampler, v_TexCoord);',
+        '}'
+      ].join('\n')
+    };
+
+    this.init();
+  }
+
+  init() {
+    initShaders(this.gl, this.shader.vertexShader, this.shader.fragmentShader);
+    this.initVertexInfoBuffers();
+    this.initTextures();
+
+    this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
+
+    this.u_matrix = this.gl.getUniformLocation(this.gl.program, 'u_matrix');
+
+    this.scaleSpeed = - 0.001;
+    this.Vs = {
+        x: 1.0,
+        y: 1.0,
+        z: 1.0
+    };
+    this.Vs.add = (scale) => {
+        this.Vs.x += scale;
+        this.Vs.y += scale;
+        this.Vs.z += scale;
+    }
+
+    this.matrix = new Matrix4();
+    this.matrix.setIdentity();
+
+    this.start();
+  }
+
+  start() {
+    this.startTime = Date.now();
+    this.animationFrameId = requestAnimationFrame(this.loop.bind(this));
+  }
+
+  loop() {
+    this.animationFrameId = requestAnimationFrame(this.loop.bind(this));
+    this.stats.update();
+    
+    this.update();
+    this.draw();
+  }
+
+  update() {
+    var tempTime = Date.now() - this.startTime;
+    this.deltaTime = tempTime - this.elapsedTime;
+    this.elapsedTime = tempTime;
+    if(this.changeToVisible) {
+      this.elapsedTime -= this.deltaTime;
+      this.deltaTime = 0;
+      this.changeToVisible = false;
+    }
+
+    this.gl.uniformMatrix4fv(this.u_matrix, false, this.matrix.elements);
+
+    this.Vs.add(this.scaleSpeed);
+    this.matrix.setScale(this.Vs.x, this.Vs.y, this.Vs.z);
+
+    if(this.Vs.x <= 0.6) {
+        this.Vs.x = 0.6;
+        this.Vs.x = 0.6;
+        this.Vs.x = 0.6;
+        this.scaleSpeed = Math.abs(this.scaleSpeed);
+    }
+    else if(this.Vs.x >= 1.0) {
+        this.Vs.x = 1.0;
+        this.Vs.x = 1.0;
+        this.Vs.x = 1.0;
+        this.scaleSpeed = - Math.abs(this.scaleSpeed);
+    }
+  }
+
+  draw() {
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+    this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, this.n);
+  }
+
+  createStats() {
+    //FPS监控
+    this.stats = new Stats();
+    this.stats.setMode(0);
+    this.stats.domElement.style.position = 'absolute';
+    this.stats.domElement.style.left = '0';
+    this.stats.domElement.style.top = '0';
+    document.body.appendChild(this.stats.domElement);
+  }
+
+  initVertexInfoBuffers() {
+    this.verticesInfo = new Float32Array(
+      //坐标-2分量，纹理坐标-2分量
+      [
+        -0.8, 0.508, 0.0, 1.0,
+        -0.8, -0.508, 0.0, 0.0,
+        0.8, 0.508, 1.0, 1.0,
+        0.8, -0.508, 1.0, 0.0
+      ]
+      );
+    this.FSIZE = this.verticesInfo.BYTES_PER_ELEMENT;//每元素占字节数
+    this.pointCt = 4;//点总分量数
+    this.pointPosCt = 2;//点坐标分量数
+    this.pointUVCt = 2;//点UV分量数
+    this.n = this.verticesInfo.length / this.pointCt;//顶点数
+
+    this.vertexBuffer = this.gl.createBuffer();//创建缓冲区对象
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);//绑定缓冲区对象
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, this.verticesInfo, this.gl.STATIC_DRAW);//向缓冲区写入数组
+
+    this.a_Position = this.gl.getAttribLocation(this.gl.program, 'a_Position');
+    this.gl.vertexAttribPointer(this.a_Position, this.pointPosCt, this.gl.FLOAT, false, this.FSIZE * 4, 0);//将缓冲区分配给标签
+    this.gl.enableVertexAttribArray(this.a_Position);//使标签可用
+
+    this.a_TexCoord = this.gl.getAttribLocation(this.gl.program, 'a_TexCoord');
+    this.gl.vertexAttribPointer(this.a_TexCoord, this.pointUVCt, this.gl.FLOAT, false, this.FSIZE * 4, this.FSIZE * 2);
+    this.gl.enableVertexAttribArray(this.a_TexCoord);
+  }
+
+  initTextures() {
+    //初始化材质
+    this.texture = this.gl.createTexture();
+
+    this.u_Sampler = this.gl.getUniformLocation(this.gl.program, 'u_Sampler');
+
+    this.image = new Image();
+    this.image.onload = () => {
+        this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, 1);//对纹理图像进行y轴反转，因为图片坐标从左上角开始，与webgl坐标的y轴相反。
+        this.gl.activeTexture(this.gl.TEXTURE0);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
+
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);//缩小置入的方式
+        //this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);//放大置入的方式
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);//水平填充的方式  //对于非二次幂尺寸的图片，需要将水平与垂直方式设置为使用边缘值
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);//垂直填充的方式
+
+        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGB, this.gl.RGB, this.gl.UNSIGNED_BYTE, this.image);
+
+        this.gl.uniform1i(this.u_Sampler, 0);
+
+        /*this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+        this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, this.n);*/
+    }
+    this.image.src = 'images/tomoeMami01.jpg';
+  }
+
+  visibilityChange() {
+    //当标签页可见状态改变时，如果转为的是可见，则置标志为true，用以解决离屏时计时不停止导致deltaTime累计的问题
+    this.changeToVisible = !document.hidden;
+    console.log('visibilityChange: hidden -> ' + document.hidden);
+  }
+}
+
+window.onload = function() {
+  var animate = new Animate();
+}
+
+</script>
