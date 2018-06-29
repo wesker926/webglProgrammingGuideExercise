@@ -116,3 +116,40 @@
 
 ### [chapter05_08_MultiTexture](http://www.wesker926.com/webglProgrammingGuideExercise/chapter05_08_MultiTexture.html)
 双纹理叠加（矢量相乘方法）。
+
+### 练习于 2018.06.27 - 2018.06.29
+### 第六章没有示例，第七章示例太多重复内容，所以对示例进行了合并。
+
+### [chapter07_01_LookAtTriangles](http://www.wesker926.com/webglProgrammingGuideExercise/chapter07_01_LookAtTriangles.html)
+这一示例中，设置了视图矩阵。  -->  <视图矩阵> X <模型矩阵> X <原始坐标>  （满足结合律）
+
+视图矩阵由视点（eyePos），目标（lookAt），上方向(upVector)决定。
+
+矩阵可以控制视图的解释：视图的变化可以由等效的模型矩阵变化来替代（如：人往后退1米，与被观察物体往前进1米，没有本质区别，位置是相对的），因此可使用视图矩阵决定视图。
+
+这一示例合并了LookAtTriangles、LookAtRotatedTriangles、LookAtTrianglesWithKeys（LookAtRotatedTriangles_mvMatrix仅进行了矩阵合并 --> 模型视图矩阵，未练习）。
+
+### [chapter07_02_OrthoView](http://www.wesker926.com/webglProgrammingGuideExercise/chapter07_02_OrthoView.html)
+正射投影矩阵，类似于三视图（即物体的大小位置不因远离视点而变化）。
+
+<投影矩阵> X <视图矩阵> X <模型矩阵> X <原始坐标>
+
+<视图矩阵> X <模型矩阵> = <模型视图矩阵>
+
+<投影矩阵> X <视图矩阵> X <模型矩阵> = <模型视图投影矩阵>
+
+这一示例合并了OrthoView、LookAtTrianglesWithKeys_ViewVolume等。
+
+由于已经使用了投影矩阵，所以canvas的尺寸将调整为页面的比例和大小（因此尺寸拉伸示例无需练习）。
+
+### [chapter07_03_PerspectiveView](http://www.wesker926.com/webglProgrammingGuideExercise/chapter07_03_PerspectiveView.html)
+透视投影矩阵。
+
+投影矩阵可以控制可视空间的解释：透视造成的缩放和平移效果可以使用等效的模型矩阵变化来替代。
+
+本示例同时测试了depth_test（深度检测）和polygon_offset_fill（多边形位移）。
+
+### [chapter07_04_HelloCube](http://www.wesker926.com/webglProgrammingGuideExercise/chapter07_04_HelloCube.html)
+使用顶点索引绘制正方体。
+
+使用索引缓冲区对象，绑定目标使用gl.ELEMENT_ARRAY_BUFFER，绘制使用gl.drawElements()。
