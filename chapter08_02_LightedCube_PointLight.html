@@ -1,0 +1,339 @@
+﻿<!doctype html>
+<!-- saved from url=(0016)http://localhost -->
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="author" content="wesker(http://www.wesker926.com/)">
+    <title>chapter08_02_LightedCube_PointLight</title>
+
+    <style>
+        body {
+            background: #444444;
+            overflow: hidden;
+        }
+        #webgl {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            left: 0;
+            top: 0;
+            overflow: hidden;
+            background: #444444;
+        }
+        #webgl-canvas {
+            position: absolute;
+            margin:auto;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="webgl">
+        <canvas id="webgl-canvas"></canvas>
+    </div>
+</body>
+</html>
+
+<script type="text/javascript" src="lib/webgl-utils.js"></script>
+<script type="text/javascript" src="lib/webgl-debug.js"></script>
+<script type="text/javascript" src="lib/cuon-utils.js"></script>
+<script type="text/javascript" src="lib/cuon-matrix.js"></script>
+<script type="text/javascript" src="lib/stats.min.js"></script>
+
+<script type="text/javascript">
+"use strict";
+
+class Animate {
+  constructor() {
+    this.width = window.innerWidth;
+    this.height = window.innerHeight;
+    this.aspectRatio = this.width / this.height;
+
+    this.changeToVisible = false;
+    document.addEventListener('visibilitychange', this.visibilityChange.bind(this), false);
+
+    this.canvas = document.getElementById('webgl-canvas');
+    this.canvas.width = this.width;
+    this.canvas.height = this.height;
+
+    //添加FPS监控
+    this.createStats();
+    
+    this.animationFrameId = 0;
+
+    this.startTime = 0;
+    this.elapsedTime = 0;
+    this.deltaTime = 0;
+
+    this.gl = this.canvas.getContext('webgl');
+
+    this.shader = {
+      vertexShader: [
+        'attribute vec4 a_Position;',
+        'attribute vec4 a_Normal;',
+        'attribute vec4 a_Color;',
+
+        'uniform mat4 u_ModelMatrix;',
+        'uniform mat4 u_MVPMatrix;',
+        'uniform mat4 u_NormalMatrix;',
+
+        'varying vec3 v_Position;',
+        'varying vec3 v_Normal;',
+        'varying vec4 v_Color;',
+
+        'void main() {',
+        '  gl_Position = u_MVPMatrix * a_Position;',
+        '  v_Position = vec3(u_ModelMatrix * a_Position);',
+        '  v_Normal = normalize(vec3(u_NormalMatrix * a_Normal));',
+        '  v_Color = a_Color;',
+        '}'
+      ].join('\n'),
+      fragmentShader: [
+        '#ifdef GL_FRAGMENT_PRECISION_HIGH',
+        'precision highp float;',
+        '#else',
+        'precision mediump float;',
+        '#endif',
+
+        'uniform vec3 u_PLightPosition;',
+        'uniform vec3 u_PLightColor;',
+        'uniform vec3 u_ALightColor;',
+
+        'varying vec3 v_Position;',
+        'varying vec3 v_Normal;',
+        'varying vec4 v_Color;',
+
+        'vec3 computeLightColor() {',
+        '  vec3 normal = v_Normal;',
+        '  vec3 pLightDirection = normalize(u_PLightPosition - v_Position);',
+        '  float nDotL = max(dot(pLightDirection, normal), 0.0);',
+        '  vec3 diffuse = u_PLightColor * vec3(v_Color) * nDotL;',
+        '  vec3 ambient = u_ALightColor * vec3(v_Color);',
+        '  return (diffuse + ambient);',
+        '}',
+
+        'void main() {',
+        '  gl_FragColor = vec4(computeLightColor(), v_Color.a);',
+        '}'
+      ].join('\n')
+    };
+
+    this.init();
+  }
+
+  init() {
+    initShaders(this.gl, this.shader.vertexShader, this.shader.fragmentShader);
+    this.initVertexInfoBuffers();
+
+    this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
+
+    this.gl.enable(this.gl.DEPTH_TEST);//开启深度检测
+
+    this.u_MVPMatrix = this.gl.getUniformLocation(this.gl.program, 'u_MVPMatrix');
+    this.u_ModelMatrix = this.gl.getUniformLocation(this.gl.program, 'u_ModelMatrix');
+    this.u_NormalMatrix = this.gl.getUniformLocation(this.gl.program, 'u_NormalMatrix');
+    this.u_PLightPosition = this.gl.getUniformLocation(this.gl.program, 'u_PLightPosition');
+    this.u_PLightColor = this.gl.getUniformLocation(this.gl.program, 'u_PLightColor');
+    this.u_ALightColor = this.gl.getUniformLocation(this.gl.program, 'u_ALightColor');
+
+    this.speed = 0.5;
+    this.Tv = {
+      x: 0.0,
+      y: 0.0,
+      z: 0.0
+    };
+
+    this.Tv.add = (temp) => {
+        this.Tv.x += temp;
+        this.Tv.y += temp;
+        this.Tv.z += temp;
+    }
+
+    this.angleSpeed = - 45;
+    this.angle = 360;
+    this.rotateAxis = {
+      x: 0,
+      y: 1,
+      z: 0
+    };
+
+    this.eyePos = {
+      x: 4.0,
+      y: 4.0,
+      z: 8.0
+    };
+
+    this.tarPos = {
+      x: 0,
+      y: 0,
+      z: 0
+    };
+
+    this.upVector = {
+      x: 0,
+      y: 1,
+      z: 0
+    };
+
+    this.MVPMatrix = new Matrix4();
+    this.MVPMatrix.setIdentity();
+    this.projMatrix = new Matrix4();
+    this.projMatrix.setPerspective(60, this.aspectRatio, 0.01, 100.0);//设置正射投影矩阵：左、右、底、上、近、远
+    this.viewMatrix = new Matrix4();
+    this.viewMatrix.setLookAt(this.eyePos.x, this.eyePos.y, this.eyePos.z, this.tarPos.x, this.tarPos.y, this.tarPos.z, this.upVector.x, this.upVector.y, this.upVector.z);//视点，目标点，上方向
+    this.modelMatrix = new Matrix4();
+    this.modelMatrix.setIdentity();
+    this.normalMatrix = new Matrix4();
+    this.normalMatrix.setInverseOf(this.modelMatrix);
+    this.normalMatrix.transpose();
+
+    this.MVPMatrix.set(this.projMatrix).multiply(this.viewMatrix).multiply(this.modelMatrix);
+
+    this.pLightPosition = new Vector3([-1.5, 1.5, 2.0]);
+    this.pLightColor = [1.0, 1.0, 1.0];
+    this.aLightColor = [0.2, 0.2, 0.2];
+    this.gl.uniform3fv(this.u_PLightPosition, this.pLightPosition.elements);
+    this.gl.uniform3fv(this.u_PLightColor, this.pLightColor);
+    this.gl.uniform3fv(this.u_ALightColor, this.aLightColor);
+
+    this.start();
+  }
+
+  start() {
+    this.startTime = Date.now();
+    this.animationFrameId = requestAnimationFrame(this.loop.bind(this));
+  }
+
+  loop() {
+    this.animationFrameId = requestAnimationFrame(this.loop.bind(this));
+    this.stats.update();
+    
+    this.update();
+    this.draw();
+  }
+
+  update() {
+    var tempTime = Date.now() - this.startTime;
+    this.deltaTime = tempTime - this.elapsedTime;
+    this.elapsedTime = tempTime;
+    if(this.changeToVisible) {
+      this.elapsedTime -= this.deltaTime;
+      this.deltaTime = 0;
+      this.changeToVisible = false;
+    }
+
+    this.gl.uniformMatrix4fv(this.u_ModelMatrix, false, this.modelMatrix.elements);
+    this.gl.uniformMatrix4fv(this.u_MVPMatrix, false, this.MVPMatrix.elements);
+    this.gl.uniformMatrix4fv(this.u_NormalMatrix, false, this.normalMatrix.elements);
+
+    this.angle = (this.angle + this.angleSpeed * this.deltaTime / 1000) % 360;
+    this.modelMatrix.setRotate(this.angle, this.rotateAxis.x, this.rotateAxis.y, this.rotateAxis.z);
+    this.MVPMatrix.set(this.projMatrix).multiply(this.viewMatrix).multiply(this.modelMatrix);
+    this.normalMatrix.setInverseOf(this.modelMatrix);
+    this.normalMatrix.transpose();
+  }
+
+  draw() {
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+
+    this.gl.drawElements(this.gl.TRIANGLES, this.n, this.gl.UNSIGNED_BYTE, 0);//（模式，数量，类型，偏移）
+  }
+
+  createStats() {
+    //FPS监控
+    this.stats = new Stats();
+    this.stats.setMode(0);
+    this.stats.domElement.style.position = 'absolute';
+    this.stats.domElement.style.left = '0';
+    this.stats.domElement.style.top = '0';
+    document.body.appendChild(this.stats.domElement);
+  }
+
+  initVertexInfoBuffers() {
+    this.vertices = new Float32Array(
+      //坐标-3分量
+      [
+        1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, -1.0,//右
+        -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 1.0,//左
+        -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0, 1.0,//上
+        -1.0, -1.0, 1.0, 1.0, -1.0, 1.0, -1.0, -1.0, -1.0, 1.0, -1.0, -1.0,//下
+        -1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0, -1.0, 1.0, 1.0, -1.0, 1.0,//前
+        1.0, 1.0, -1.0, -1.0, 1.0, -1.0, 1.0, -1.0, -1.0, -1.0, -1.0, -1.0//后
+      ]
+      );
+
+    this.colors = new Float32Array(
+      //颜色-4分量
+      [
+        1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+        1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+        1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+        1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+        1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+        1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+      ]
+      );
+
+    this.normals = new Float32Array(
+      //法线-3分量
+      [
+        1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+        -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0,
+        0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0,
+        0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0,
+        0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+        0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0,
+      ]
+      );
+
+    this.indices = new Uint8Array(
+      //索引-1分量
+      [
+        0, 2, 1, 1, 2, 3,
+        4, 6, 5, 5, 6, 7,
+        8, 10, 9, 9, 10, 11,
+        12, 14, 13, 13, 14, 15,
+        16, 18, 17, 17, 18, 19,
+        20, 22, 21, 21, 22, 23
+      ]
+      );
+
+    this.pointPosCt = 3;//点坐标分量数
+    this.pointColorCt = 4;//点颜色分量数
+    this.pointNormalCt = 3;//点法线分量数
+    this.n = this.indices.length;//绘制的次数（索引数）
+
+    this.initBuffers(this.vertices, 'a_Position', this.pointPosCt, this.gl.FLOAT);
+    this.initBuffers(this.colors, 'a_Color', this.pointColorCt, this.gl.FLOAT);
+    this.initBuffers(this.normals, 'a_Normal', this.pointNormalCt, this.gl.FLOAT);
+
+    this.indexBuffer = this.gl.createBuffer();//创建并绑定索引缓冲区
+    this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+    this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, this.indices, this.gl.STATIC_DRAW);
+  }
+
+  initBuffers(data, attribute, ct, type) {
+    var buffer = this.gl.createBuffer();
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer);
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, data, this.gl.STATIC_DRAW);
+
+    var attributeLoc = this.gl.getAttribLocation(this.gl.program, attribute);
+    this.gl.vertexAttribPointer(attributeLoc, ct, type, false, 0, 0);
+    this.gl.enableVertexAttribArray(attributeLoc);
+  }
+
+  visibilityChange() {
+    //当标签页可见状态改变时，如果转为的是可见，则置标志为true，用以解决离屏时计时不停止导致deltaTime累计的问题
+    this.changeToVisible = !document.hidden;
+    console.log('visibilityChange: hidden -> ' + document.hidden);
+  }
+}
+
+window.onload = function() {
+  var animate = new Animate();
+}
+
+</script>

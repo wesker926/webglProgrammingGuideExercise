@@ -153,3 +153,16 @@
 使用顶点索引绘制正方体。
 
 使用索引缓冲区对象，绑定目标使用gl.ELEMENT_ARRAY_BUFFER，绘制使用gl.drawElements()。
+
+### 练习于 2018.06.30 - 2018.07.01
+
+### [chapter08_01_LightedCube](http://www.wesker926.com/webglProgrammingGuideExercise/chapter08_01_LightedCube.html)
+立方体，平行光 + 环境光，旋转（法线变化 --> 逆转置矩阵），逐片元。
+
+### [chapter08_02_LightedCube_PointLight](http://www.wesker926.com/webglProgrammingGuideExercise/chapter08_02_LightedCube_PointLight.html)
+立方体，点光源 + 环境光，旋转，逐片元。
+
+### [chapter08_03_LightedSphere_PointLight](http://www.wesker926.com/webglProgrammingGuideExercise/chapter08_03_LightedSphere_PointLight.html)
+球体，点光源 + 环境光，平移 + 旋转，逐片元。
+
+注意，这里的索引值用了Uint16Array，对应地在drawElements中需要用gl.UNSIGNED_SHORT。
