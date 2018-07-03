@@ -144,7 +144,7 @@ class Animate {
     };
 
     this.projMatrix = new Matrix4();
-    this.projMatrix.setPerspective(60, this.aspectRatio, 0.01, 10.0);//设置正射投影矩阵：左、右、底、上、近、远
+    this.projMatrix.setPerspective(60, this.aspectRatio, 0.01, 10.0);//设置透视投影矩阵：上下视角，宽高比，近，远
     this.viewMatrix = new Matrix4();
     this.viewMatrix.setLookAt(this.eyePos.x, this.eyePos.y, this.eyePos.z, this.tarPos.x, this.tarPos.y, this.tarPos.z, this.upVector.x, this.upVector.y, this.upVector.z);//视点，目标点，上方向
     this.modelMatrix = new Matrix4();

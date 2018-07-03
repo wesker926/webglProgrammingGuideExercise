@@ -166,3 +166,8 @@
 球体，点光源 + 环境光，平移 + 旋转，逐片元。
 
 注意，这里的索引值用了Uint16Array，对应地在drawElements中需要用gl.UNSIGNED_SHORT。
+
+### 练习于 2018.07.02 - 2018.07.03
+
+### [chapter09_01_MultiJointModel_segment](http://www.wesker926.com/webglProgrammingGuideExercise/chapter09_01_MultiJointModel_segment.html)
+多个立方体组成的简单的机器手臂层次模型，层次模型可以理解为骨骼的工作原理，上骨骼的变化影响所有下骨骼，下骨骼的变化不会影响上骨骼（上下是指层次，不是位置）。

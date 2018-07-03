@@ -1,0 +1,528 @@
+﻿<!doctype html>
+<!-- saved from url=(0016)http://localhost -->
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="author" content="wesker(http://www.wesker926.com/)">
+    <title>chapter09_01_MultiJointModel_segment</title>
+
+    <style>
+        body {
+            background: #444444;
+            overflow: hidden;
+        }
+        #webgl {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            left: 0;
+            top: 0;
+            overflow: hidden;
+            background: #444444;
+        }
+        #webgl-canvas {
+            position: absolute;
+            margin:auto;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="webgl">
+        <canvas id="webgl-canvas"></canvas>
+    </div>
+</body>
+</html>
+
+<script type="text/javascript" src="lib/webgl-utils.js"></script>
+<script type="text/javascript" src="lib/webgl-debug.js"></script>
+<script type="text/javascript" src="lib/cuon-utils.js"></script>
+<script type="text/javascript" src="lib/cuon-matrix.js"></script>
+<script type="text/javascript" src="lib/stats.min.js"></script>
+
+<script type="text/javascript">
+"use strict";
+
+class Machine {
+  constructor(father) {
+    this.father = father;
+
+    this.pointPosCt = 3;//点坐标分量数
+    this.pointColorCt = 4;//点颜色分量数
+    this.pointNormalCt = 3;//点法线分量数
+
+    this.ANGLE_STEP = 3.0;
+    this.g_arm1Angle = 90.0;
+    this.g_joint1Angle = 45.0;
+    this.g_joint2Angle = 0.0;
+    this.g_joint3Angle = 0.0;
+
+    this.vertices_base = new Float32Array(
+      [
+         5.0, 2.0, 5.0,  5.0, 2.0,-5.0,  5.0, 0.0, 5.0,  5.0, 0.0,-5.0,
+        -5.0, 2.0,-5.0, -5.0, 2.0, 5.0, -5.0, 0.0,-5.0, -5.0, 0.0, 5.0,
+        -5.0, 2.0,-5.0,  5.0, 2.0,-5.0, -5.0, 2.0, 5.0,  5.0, 2.0, 5.0,
+        -5.0, 0.0, 5.0,  5.0, 0.0, 5.0, -5.0, 0.0,-5.0,  5.0, 0.0,-5.0,
+        -5.0, 2.0, 5.0,  5.0, 2.0, 5.0, -5.0, 0.0, 5.0,  5.0, 0.0, 5.0,
+         5.0, 2.0,-5.0, -5.0, 2.0,-5.0,  5.0, 0.0,-5.0, -5.0, 0.0,-5.0
+      ]
+      );
+
+    this.colors_base = new Float32Array([0.4, 1.0, 1.0, 1.0]);
+    this.g_buffer_base = this.father.initBuffersForLaterUse(this.vertices_base, this.pointPosCt, this.father.gl.FLOAT);
+
+    this.vertices_arm1 = new Float32Array(
+      [
+         1.5, 10.0, 1.5,  1.5, 10.0,-1.5,  1.5,  0.0, 1.5,  1.5,  0.0,-1.5,
+        -1.5, 10.0,-1.5, -1.5, 10.0, 1.5, -1.5,  0.0,-1.5, -1.5,  0.0, 1.5,
+        -1.5, 10.0,-1.5,  1.5, 10.0,-1.5, -1.5, 10.0, 1.5,  1.5, 10.0, 1.5,
+        -1.5,  0.0, 1.5,  1.5,  0.0, 1.5, -1.5,  0.0,-1.5,  1.5,  0.0,-1.5,
+        -1.5, 10.0, 1.5,  1.5, 10.0, 1.5, -1.5,  0.0, 1.5,  1.5,  0.0, 1.5,
+         1.5, 10.0,-1.5, -1.5, 10.0,-1.5,  1.5,  0.0,-1.5, -1.5,  0.0,-1.5
+      ]
+      );
+
+    this.colors_arm1 = new Float32Array([1.0, 0.4, 1.0, 1.0]);
+    this.g_buffer_arm1 = this.father.initBuffersForLaterUse(this.vertices_arm1, this.pointPosCt, this.father.gl.FLOAT);
+
+    this.vertices_arm2 = new Float32Array(
+      [
+         2.0, 10.0, 2.0,  2.0, 10.0,-2.0,  2.0,  0.0, 2.0,  2.0,  0.0,-2.0,
+        -2.0, 10.0,-2.0, -2.0, 10.0, 2.0, -2.0,  0.0,-2.0, -2.0,  0.0, 2.0,
+        -2.0, 10.0,-2.0,  2.0, 10.0,-2.0, -2.0, 10.0, 2.0,  2.0, 10.0, 2.0,
+        -2.0,  0.0, 2.0,  2.0,  0.0, 2.0, -2.0,  0.0,-2.0,  2.0,  0.0,-2.0,
+        -2.0, 10.0, 2.0,  2.0, 10.0, 2.0, -2.0,  0.0, 2.0,  2.0,  0.0, 2.0,
+         2.0, 10.0,-2.0, -2.0, 10.0,-2.0,  2.0,  0.0,-2.0, -2.0,  0.0,-2.0
+      ]
+      );
+
+    this.colors_arm2 = new Float32Array([1.0, 1.0, 0.4, 1.0]);
+    this.g_buffer_arm2 = this.father.initBuffersForLaterUse(this.vertices_arm2, this.pointPosCt, this.father.gl.FLOAT);
+
+    this.vertices_palm = new Float32Array(
+      [
+         1.0, 2.0, 3.0,  1.0, 2.0,-3.0,  1.0, 0.0, 3.0,  1.0, 0.0,-3.0,
+        -1.0, 2.0,-3.0, -1.0, 2.0, 3.0, -1.0, 0.0,-3.0, -1.0, 0.0, 3.0,
+        -1.0, 2.0,-3.0,  1.0, 2.0,-3.0, -1.0, 2.0, 3.0,  1.0, 2.0, 3.0,
+        -1.0, 0.0, 3.0,  1.0, 0.0, 3.0, -1.0, 0.0,-3.0,  1.0, 0.0,-3.0,
+        -1.0, 2.0, 3.0,  1.0, 2.0, 3.0, -1.0, 0.0, 3.0,  1.0, 0.0, 3.0,
+         1.0, 2.0,-3.0, -1.0, 2.0,-3.0,  1.0, 0.0,-3.0, -1.0, 0.0,-3.0
+      ]
+      );
+
+    this.colors_palm = new Float32Array([0.4, 0.4, 1.0, 1.0]);
+    this.g_buffer_palm = this.father.initBuffersForLaterUse(this.vertices_palm, this.pointPosCt, this.father.gl.FLOAT);
+
+    this.vertices_finger1 = new Float32Array(
+      [
+         0.5, 2.0, 0.5,  0.5, 2.0,-0.5,  0.5, 0.0, 0.5,  0.5, 0.0,-0.5,
+        -0.5, 2.0,-0.5, -0.5, 2.0, 0.5, -0.5, 0.0,-0.5, -0.5, 0.0, 0.5,
+        -0.5, 2.0,-0.5,  0.5, 2.0,-0.5, -0.5, 2.0, 0.5,  0.5, 2.0, 0.5,
+        -0.5, 0.0, 0.5,  0.5, 0.0, 0.5, -0.5, 0.0,-0.5,  0.5, 0.0,-0.5,
+        -0.5, 2.0, 0.5,  0.5, 2.0, 0.5, -0.5, 0.0, 0.5,  0.5, 0.0, 0.5,
+         0.5, 2.0,-0.5, -0.5, 2.0,-0.5,  0.5, 0.0,-0.5, -0.5, 0.0,-0.5
+      ]
+      );
+
+    this.colors_finger1 = new Float32Array([0.4, 1.0, 0.4, 1.0]);
+    this.g_buffer_finger1 = this.father.initBuffersForLaterUse(this.vertices_finger1, this.pointPosCt, this.father.gl.FLOAT);
+
+    this.vertices_finger2 = new Float32Array(
+      [
+         0.5, 2.0, 0.5,  0.5, 2.0,-0.5,  0.5, 0.0, 0.5,  0.5, 0.0,-0.5,
+        -0.5, 2.0,-0.5, -0.5, 2.0, 0.5, -0.5, 0.0,-0.5, -0.5, 0.0, 0.5,
+        -0.5, 2.0,-0.5,  0.5, 2.0,-0.5, -0.5, 2.0, 0.5,  0.5, 2.0, 0.5,
+        -0.5, 0.0, 0.5,  0.5, 0.0, 0.5, -0.5, 0.0,-0.5,  0.5, 0.0,-0.5,
+        -0.5, 2.0, 0.5,  0.5, 2.0, 0.5, -0.5, 0.0, 0.5,  0.5, 0.0, 0.5,
+         0.5, 2.0,-0.5, -0.5, 2.0,-0.5,  0.5, 0.0,-0.5, -0.5, 0.0,-0.5
+      ]
+      );
+
+    this.colors_finger2 = new Float32Array([1.0, 0.4, 0.4, 1.0]);
+    this.g_buffer_finger2 = this.father.initBuffersForLaterUse(this.vertices_finger2, this.pointPosCt, this.father.gl.FLOAT);
+
+    this.normals = new Float32Array(
+      [
+         1.0, 0.0, 0.0,  1.0, 0.0, 0.0,  1.0, 0.0, 0.0,  1.0, 0.0, 0.0,
+        -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0,
+         0.0, 1.0, 0.0,  0.0, 1.0, 0.0,  0.0, 1.0, 0.0,  0.0, 1.0, 0.0,
+         0.0,-1.0, 0.0,  0.0,-1.0, 0.0,  0.0,-1.0, 0.0,  0.0,-1.0, 0.0,
+         0.0, 0.0, 1.0,  0.0, 0.0, 1.0,  0.0, 0.0, 1.0,  0.0, 0.0, 1.0,
+         0.0, 0.0,-1.0,  0.0, 0.0,-1.0,  0.0, 0.0,-1.0,  0.0, 0.0,-1.0
+      ]
+      );
+    this.father.initBuffers(this.normals, 'a_Normal', this.pointNormalCt, this.father.gl.FLOAT);
+
+    this.indices = new Uint8Array(
+      [
+         0,  2,  1,  1,  2,  3,
+         4,  6,  5,  5,  6,  7,
+         8, 10,  9,  9, 10, 11,
+        12, 14, 13, 13, 14, 15,
+        16, 18, 17, 17, 18, 19,
+        20, 22, 21, 21, 22, 23
+      ]
+      );
+
+    this.n = this.indices.length;//单次绘制的次数（索引数）
+    this.father.initIndicesBuffers(this.indices);
+
+    this.u_Color = this.father.gl.getUniformLocation(this.father.gl.program, 'u_Color');
+
+    this.a_Position = this.father.gl.getAttribLocation(this.father.gl.program, 'a_Position');
+
+    this.MVPMatrix = new Matrix4();
+    this.MVPMatrix.setIdentity();
+    this.modelMatrix = new Matrix4();
+    this.modelMatrix.setIdentity();
+    this.normalMatrix = new Matrix4();
+    this.modelMatrix.setIdentity();
+  }
+
+  update() {
+    var baseHeight = 2.0;
+    this.modelMatrix.setTranslate(0.0, -12.0, 0.0);
+    this.draw({
+      buffer:  this.g_buffer_base.buffer,
+      ct:      this.g_buffer_base.ct,
+      type:    this.g_buffer_base.type,
+      color:   this.colors_base,
+      isClear: true
+    });
+
+    var arm1Length = 10.0;
+    this.modelMatrix.translate(0.0, baseHeight, 0.0);
+    this.modelMatrix.rotate(this.g_arm1Angle, 0.0, 1.0, 0.0);
+    this.draw({
+      buffer:  this.g_buffer_arm1.buffer,
+      ct:      this.g_buffer_arm1.ct,
+      type:    this.g_buffer_arm1.type,
+      color:   this.colors_arm1,
+      isClear: false
+    });
+
+    var arm2Length = 10.0;
+    this.modelMatrix.translate(0.0, arm1Length, 0.0);
+    this.modelMatrix.rotate(this.g_joint1Angle, 0.0, 0.0, 1.0);
+    this.draw({
+      buffer:  this.g_buffer_arm2.buffer,
+      ct:      this.g_buffer_arm2.ct,
+      type:    this.g_buffer_arm2.type,
+      color:   this.colors_arm2,
+      isClear: false
+    });
+
+    var palmLength = 2.0;
+    this.modelMatrix.translate(0.0, arm2Length, 0.0);
+    this.modelMatrix.rotate(this.g_joint2Angle, 0.0, 1.0, 0.0);
+    this.draw({
+      buffer:  this.g_buffer_palm.buffer,
+      ct:      this.g_buffer_palm.ct,
+      type:    this.g_buffer_palm.type,
+      color:   this.colors_palm,
+      isClear: false
+    });
+
+    this.modelMatrix.translate(0.0, palmLength, 0.0);
+    var tempMatrix = new Matrix4(this.modelMatrix);//新建临时矩阵，要新建，不要引用
+
+    this.modelMatrix.translate(0.0, 0.0, 2.0);
+    this.modelMatrix.rotate(this.g_joint3Angle, 1.0, 0.0, 0.0);
+    this.draw({
+      buffer:  this.g_buffer_finger1.buffer,
+      ct:      this.g_buffer_finger1.ct,
+      type:    this.g_buffer_finger1.type,
+      color:   this.colors_finger1,
+      isClear: false
+    });
+
+    this.modelMatrix = tempMatrix;
+    this.modelMatrix.translate(0.0, 0.0, -2.0);
+    this.modelMatrix.rotate(-this.g_joint3Angle, 1.0, 0.0, 0.0);
+    this.draw({
+      buffer:  this.g_buffer_finger2.buffer,
+      ct:      this.g_buffer_finger2.ct,
+      type:    this.g_buffer_finger2.type,
+      color:   this.colors_finger2,
+      isClear: false
+    });
+  }
+
+  draw(p) {
+    //buffer, ct, type, color, isClear
+    this.father.gl.bindBuffer(this.father.gl.ARRAY_BUFFER, p.buffer);
+    this.father.gl.vertexAttribPointer(this.a_Position, p.ct, p.type, false, 0, 0);
+    this.father.gl.enableVertexAttribArray(this.a_Position);
+
+    this.father.gl.uniform4fv(this.u_Color, p.color);
+
+    this.MVPMatrix.set(this.father.projMatrix).multiply(this.father.viewMatrix).multiply(this.modelMatrix);
+    this.normalMatrix.setInverseOf(this.modelMatrix);
+    this.normalMatrix.transpose();
+
+    this.father.gl.uniformMatrix4fv(this.father.u_ModelMatrix, false, this.modelMatrix.elements);
+    this.father.gl.uniformMatrix4fv(this.father.u_MVPMatrix, false, this.MVPMatrix.elements);
+    this.father.gl.uniformMatrix4fv(this.father.u_NormalMatrix, false, this.normalMatrix.elements);
+
+    this.father.draw(p.isClear, this.father.gl.TRIANGLES, this.n, this.father.gl.UNSIGNED_BYTE, 0);
+  }
+
+  handleKeyDown(e) {
+    switch(e.keyCode) {
+      case 40://up
+        if(this.g_joint1Angle < 135.0) {
+          this.g_joint1Angle += this.ANGLE_STEP;
+        }
+        break;
+      case 38://down
+        if(this.g_joint1Angle > -135.0) {
+          this.g_joint1Angle -= this.ANGLE_STEP;
+        }
+        break;
+      case 37://left
+        this.g_arm1Angle = (this.g_arm1Angle - this.ANGLE_STEP) % 360;
+        break;
+      case 39://right
+        this.g_arm1Angle = (this.g_arm1Angle + this.ANGLE_STEP) % 360;
+        break;
+      case 90://z
+        this.g_joint2Angle = (this.g_joint2Angle + this.ANGLE_STEP) % 360;
+        break;
+      case 88://x
+        this.g_joint2Angle = (this.g_joint2Angle - this.ANGLE_STEP) % 360;
+        break;
+      case 67://c
+        if(this.g_joint3Angle < 60.0) {
+          this.g_joint3Angle = (this.g_joint3Angle + this.ANGLE_STEP) % 360;
+        }
+        break;
+      case 86://v
+        if(this.g_joint3Angle > -60.0) {
+          this.g_joint3Angle = (this.g_joint3Angle - this.ANGLE_STEP) % 360;
+        }
+        break;
+      default:
+        return;
+    }
+  }
+}
+
+class Animate {
+  constructor() {
+    this.width = window.innerWidth;
+    this.height = window.innerHeight;
+    this.aspectRatio = this.width / this.height;
+
+    this.changeToVisible = false;
+    document.addEventListener('visibilitychange', this.visibilityChange.bind(this), false);
+
+    document.addEventListener('keydown', this.handleKeyDown.bind(this), false);
+
+    this.canvas = document.getElementById('webgl-canvas');
+    this.canvas.width = this.width;
+    this.canvas.height = this.height;
+
+    //添加FPS监控
+    this.createStats();
+    
+    this.animationFrameId = 0;
+
+    this.startTime = 0;
+    this.elapsedTime = 0;
+    this.deltaTime = 0;
+
+    this.gl = this.canvas.getContext('webgl');
+
+    this.shader = {
+      vertexShader: [
+        'attribute vec4 a_Position;',
+        'attribute vec4 a_Normal;',
+
+        'uniform vec4 u_Color;',
+        'uniform mat4 u_ModelMatrix;',
+        'uniform mat4 u_MVPMatrix;',
+        'uniform mat4 u_NormalMatrix;',
+
+        'varying vec3 v_Position;',
+        'varying vec3 v_Normal;',
+        'varying vec4 v_Color;',
+
+        'void main() {',
+        '  gl_Position = u_MVPMatrix * a_Position;',
+        '  v_Position = vec3(u_ModelMatrix * a_Position);',
+        '  v_Normal = normalize(vec3(u_NormalMatrix * a_Normal));',
+        '  v_Color = u_Color;',
+        '}'
+      ].join('\n'),
+      fragmentShader: [
+        '#ifdef GL_FRAGMENT_PRECISION_HIGH',
+        'precision highp float;',
+        '#else',
+        'precision mediump float;',
+        '#endif',
+
+        'uniform vec3 u_PLightPosition;',
+        'uniform vec3 u_PLightColor;',
+        'uniform vec3 u_ALightColor;',
+
+        'varying vec3 v_Position;',
+        'varying vec3 v_Normal;',
+        'varying vec4 v_Color;',
+
+        'vec3 computeLightColor() {',
+        '  vec3 normal = v_Normal;',
+        '  vec3 pLightDirection = normalize(u_PLightPosition - v_Position);',
+        '  float nDotL = max(dot(pLightDirection, normal), 0.0);',
+        '  vec3 diffuse = u_PLightColor * vec3(v_Color) * nDotL;',
+        '  vec3 ambient = u_ALightColor * vec3(v_Color);',
+        '  return (diffuse + ambient);',
+        '}',
+
+        'void main() {',
+        '  gl_FragColor = vec4(computeLightColor(), v_Color.a);',
+        '}'
+      ].join('\n')
+    };
+
+    this.init();
+  }
+
+  init() {
+    initShaders(this.gl, this.shader.vertexShader, this.shader.fragmentShader);
+
+    this.machine = new Machine(this);
+
+    this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
+
+    this.gl.enable(this.gl.DEPTH_TEST);//开启深度检测
+
+    this.u_MVPMatrix = this.gl.getUniformLocation(this.gl.program, 'u_MVPMatrix');
+    this.u_ModelMatrix = this.gl.getUniformLocation(this.gl.program, 'u_ModelMatrix');
+    this.u_NormalMatrix = this.gl.getUniformLocation(this.gl.program, 'u_NormalMatrix');
+    this.u_PLightPosition = this.gl.getUniformLocation(this.gl.program, 'u_PLightPosition');
+    this.u_PLightColor = this.gl.getUniformLocation(this.gl.program, 'u_PLightColor');
+    this.u_ALightColor = this.gl.getUniformLocation(this.gl.program, 'u_ALightColor');
+
+    this.eyePos = {
+      x: 16.0,
+      y: 16.0,
+      z: 32.0
+    };
+
+    this.tarPos = {
+      x: 0,
+      y: 0,
+      z: 0
+    };
+
+    this.upVector = {
+      x: 0,
+      y: 1,
+      z: 0
+    };
+
+    this.projMatrix = new Matrix4();
+    this.projMatrix.setPerspective(60, this.aspectRatio, 0.01, 100.0);//设置透视投影矩阵：上下视角，宽高比，近，远
+    this.viewMatrix = new Matrix4();
+    this.viewMatrix.setLookAt(this.eyePos.x, this.eyePos.y, this.eyePos.z, this.tarPos.x, this.tarPos.y, this.tarPos.z, this.upVector.x, this.upVector.y, this.upVector.z);//视点，目标点，上方向
+
+    this.pLightPosition = new Vector3([-15, 15, 20]);
+    this.pLightColor = [1.0, 1.0, 1.0];
+    this.aLightColor = [0.2, 0.2, 0.2];
+    this.gl.uniform3fv(this.u_PLightPosition, this.pLightPosition.elements);
+    this.gl.uniform3fv(this.u_PLightColor, this.pLightColor);
+    this.gl.uniform3fv(this.u_ALightColor, this.aLightColor);
+
+    this.start();
+  }
+
+  start() {
+    this.startTime = Date.now();
+    this.animationFrameId = requestAnimationFrame(this.loop.bind(this));
+  }
+
+  loop() {
+    this.animationFrameId = requestAnimationFrame(this.loop.bind(this));
+    this.stats.update();
+    
+    this.update();
+  }
+
+  update() {
+    var tempTime = Date.now() - this.startTime;
+    this.deltaTime = tempTime - this.elapsedTime;
+    this.elapsedTime = tempTime;
+    if(this.changeToVisible) {
+      this.elapsedTime -= this.deltaTime;
+      this.deltaTime = 0;
+      this.changeToVisible = false;
+    }
+
+    this.machine.update();
+  }
+
+  draw(isClear, model, num, type, offset) {
+    if(isClear) {
+      this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+    }
+
+    this.gl.drawElements(model, num, type, offset);
+  }
+
+  createStats() {
+    //FPS监控
+    this.stats = new Stats();
+    this.stats.setMode(0);
+    this.stats.domElement.style.position = 'absolute';
+    this.stats.domElement.style.left = '0';
+    this.stats.domElement.style.top = '0';
+    document.body.appendChild(this.stats.domElement);
+  }
+
+  initBuffersForLaterUse(data, ct, type) {
+    var buffer = this.gl.createBuffer();
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer);
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, data, this.gl.STATIC_DRAW);
+
+    return {
+      buffer: buffer,
+      ct: ct,
+      type: type
+    };
+  }
+
+  initBuffers(data, attribute, ct, type) {
+    var buffer = this.gl.createBuffer();
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer);
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, data, this.gl.STATIC_DRAW);
+
+    var attributeLoc = this.gl.getAttribLocation(this.gl.program, attribute);
+    this.gl.vertexAttribPointer(attributeLoc, ct, type, false, 0, 0);
+    this.gl.enableVertexAttribArray(attributeLoc);
+  }
+
+  initIndicesBuffers(data) {
+    var buffer = this.gl.createBuffer();
+    this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, buffer);
+    this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, data, this.gl.STATIC_DRAW);
+  }
+
+  visibilityChange() {
+    //当标签页可见状态改变时，如果转为的是可见，则置标志为true，用以解决离屏时计时不停止导致deltaTime累计的问题
+    this.changeToVisible = !document.hidden;
+    console.log('visibilityChange: hidden -> ' + document.hidden);
+  }
+
+  handleKeyDown(e) {
+    this.machine.handleKeyDown(e);
+  }
+}
+
+window.onload = function() {
+  var animate = new Animate();
+}
+
+</script>
