@@ -171,3 +171,6 @@
 
 ### [chapter09_01_MultiJointModel_segment](http://www.wesker926.com/webglProgrammingGuideExercise/chapter09_01_MultiJointModel_segment.html)
 多个立方体组成的简单的机器手臂层次模型，层次模型可以理解为骨骼的工作原理，上骨骼的变化影响所有下骨骼，下骨骼的变化不会影响上骨骼（上下是指层次，不是位置）。
+
+### [chapter09_02_MultiJointModel_segment_initWebGL](http://www.wesker926.com/webglProgrammingGuideExercise/chapter09_02_MultiJointModel_segment_initWebGL.html)
+和上一示例相同，不过自行实现了库中的initShader()方法，重写为initWebGL()，了解创建、链接程序对象，创建、载入、编译着色器对象的细节。
